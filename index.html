@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Production Plan Maker Pro</title>
+    <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --sidebar-bg: #1a1a1a;
+            --card-bg: #242424;
+            --accent-color: #f39c12;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px; background: var(--sidebar-bg); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;
+        }
+        .sidebar h2 {
+            font-size: 1.1rem; text-align: center; color: var(--accent-color); margin-bottom: 30px;
+            padding: 0 15px; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .nav-btn {
+            background: none; border: none; color: #888; padding: 15px 25px;
+            text-align: left; cursor: pointer; font-size: 0.9rem; transition: 0.3s;
+            border-left: 3px solid transparent; outline: none;
+        }
+        .nav-btn:hover { background: #252525; color: white; }
+        .nav-btn.active { color: var(--accent-color); background: #252525; border-left: 3px solid var(--accent-color); }
+
+        /* MAIN CONTENT */
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .header-section {
+            background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 30px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px; border: 1px solid var(--border-color);
+        }
+        .header-item { display: flex; flex-direction: column; gap: 5px; }
+        .header-item label { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: bold; }
+
+        .container { background: var(--card-bg); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #333; overflow-x: auto; }
+        h3 { margin-top: 0; color: var(--accent-color); font-size: 1rem; text-transform: uppercase; margin-bottom: 15px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; min-width: 500px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+        th { color: #666; font-size: 0.75rem; text-transform: uppercase; }
+
+        /* ИНПУТЫ И КНОПКИ */
+        input, textarea {
+            background: #121212; border: 1px solid #3d3d3d; color: white; padding: 10px 12px;
+            border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 16px; /* 16px предотвращает зум на iOS */
+        }
+        input:focus { border-color: var(--accent-color); outline: none; }
+        .sub-input { font-size: 0.85rem; margin-top: 5px; color: #f39c12; border-color: #2a2a2a; }
+
+        .add-btn {
+            background: rgba(255,255,255,0.05); border: 1px dashed #444; color: #888; padding: 12px; 
+            width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.2s; font-size: 16px;
+        }
+        .add-btn:hover { border-color: var(--accent-color); color: var(--accent-color); background: rgba(243, 156, 18, 0.1); }
+        .photo-btn { padding: 8px; font-size: 0.8rem; margin: 0; width: auto; border-style: solid; color: #fff; border-color: #555; }
+
+        /* ОБЛАКО */
+        .cloud-status { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; font-size: 16px; }
+        .status-off { background: #333; color: #888; }
+        .status-on { background: var(--accent-color); color: #000; }
+        .cloud-controls { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .cloud-btn { flex: 1; padding: 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 16px; min-width: 150px; }
+        .save-btn { background: #27ae60; color: white; }
+        .load-btn { background: #2980b9; color: white; }
+        .cloud-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .reset-btn { background: #c0392b; color: white; padding: 12px; border-radius: 8px; border: none; cursor: pointer; margin-top: 10px; width: 100%; font-weight: bold; font-size: 16px; }
+
+        /* ОТЧЕТ */
+        .report-card { background: #1a1a1a; border: 1px solid var(--accent-color); padding: 25px; border-radius: 15px; }
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .report-item h4 { color: var(--accent-color); margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase; }
+        .badge { background: #333; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; margin: 3px; display: inline-block; border: 1px solid #444; }
+
+        /* АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНА */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { 
+                width: 100%; height: auto; flex-direction: row; overflow-x: auto; 
+                padding: 10px; border-right: none; border-bottom: 1px solid var(--border-color); 
+                -webkit-overflow-scrolling: touch;
+            }
+            .sidebar h2 { display: none; }
+            .nav-btn { white-space: nowrap; padding: 12px 15px; border-left: none; border-bottom: 3px solid transparent; }
+            .nav-btn.active { border-left: none; border-bottom: 3px solid var(--accent-color); }
+            .main-content { padding: 15px; }
+            .container { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2 style="display: block; margin-top: 0;">Production</h2>
+        <button class="nav-btn active" onclick="openTab('tab-timing')">🎬 Тайминг</button>
+        <button class="nav-btn" onclick="openTab('tab-people')">👥 Команда</button>
+        <button class="nav-btn" onclick="openTab('tab-props')">💄 Реквизит/Фото</button>
+        <button class="nav-btn" onclick="openTab('tab-budget')">🎥 Оборудование</button>
+        <button class="nav-btn" onclick="openTab('tab-logistics')">🚚 Логистика</button>
+        <button class="nav-btn" onclick="openTab('tab-report')">📋 Отчет</button>
+        <button class="nav-btn" onclick="openTab('tab-cloud')">☁️ Облако</button>
+    </div>
+
+    <div class="main-content">
+        <div class="header-section">
+            <div class="header-item"><label>Дата смены</label><input type="date" id="shoot-date" oninput="updateReport()"></div>
+            <div class="header-item"><label>Старт</label><input type="time" id="shift-start" oninput="updateReport()"></div>
+            <div class="header-item"><label>Финиш</label><input type="time" id="shift-end" oninput="updateReport()"></div>
+        </div>
+
+        <h1 id="tab-title" style="margin-top: 0;">Сцены и Тайминг</h1>
+
+        <div id="tab-timing" class="tab-content active">
+            <div class="container">
+                <table id="time-table">
+                    <thead><tr><th style="width:40%">Сцена / Звук</th><th>Локация</th><th style="width:80px">Мин.</th></tr></thead>
+                    <tbody><tr>
+                        <td><input type="text" placeholder="Название" oninput="updateReport()"><input type="text" class="sub-input" placeholder="🎵 Музыка/Звук" oninput="updateReport()"></td>
+                        <td><input type="text" placeholder="Локация" oninput="updateReport()"></td>
+                        <td><input type="number" class="time-input" placeholder="0" oninput="updateReport()"></td>
+                    </tr></tbody>
+                </table>
+                <button class="add-btn" onclick="addRow('time-table')">+ Добавить сцену</button>
+            </div>
+        </div>
+
+        <div id="tab-people" class="tab-content">
+            <div class="container">
+                <h3>🎭 Актеры</h3>
+                <table id="actors-table">
+                    <thead><tr><th>Имя / Роль</th><th style="width:140px">Вызов (Call)</th></tr></thead>
+                    <tbody><tr>
+                        <td><input type="text" class="actor-input" placeholder="Актер" oninput="updateReport()"></td>
+                        <td><input type="time" class="actor-call" oninput="updateReport()"></td>
+                    </tr></tbody>
+                </table>
+                <button class="add-btn" onclick="addRow('actors-table')">+ Добавить актера</button>
+            </div>
+            <div class="container">
+                <h3>🛠 Съемочная группа</h3>
+                <div id="crew-list"></div>
+                <button class="add-btn" onclick="addSimpleInput('crew-list', 'crew-input')">+ Добавить специалиста</button>
+            </div>
+        </div>
+
+        <div id="tab-props" class="tab-content">
+            <div class="container">
+                <h3>📦 Реквизит / Костюмы / Локации</h3>
+                <table id="props-table">
+                    <thead><tr><th>Предмет / Описание</th><th style="width:120px">Фото</th></tr></thead>
+                    <tbody><tr>
+                        <td><input type="text" class="prop-input" placeholder="Что нужно" oninput="updateReport()"></td>
+                        <td><button class="add-btn photo-btn" onclick="triggerPhotoUpload(this)">📷 Прикрепить</button><input type="hidden" class="photo-link"></td>
+                    </tr></tbody>
+                </table>
+                <button class="add-btn" onclick="addRow('props-table')">+ Добавить строку</button>
+            </div>
+        </div>
+
+        <div id="tab-budget" class="tab-content">
+            <div class="container">
+                <table id="budget-table">
+                    <thead><tr><th>Техника</th><th>₽/смена</th><th style="width:70px">Смен</th><th style="width:100px">Итого</th></tr></thead>
+                    <tbody><tr class="budget-row">
+                        <td><input type="text" placeholder="Объектив/Свет" oninput="updateReport()"><input type="text" class="sub-input" placeholder="Комментарий" oninput="updateReport()"></td>
+                        <td><input type="number" class="price-input" placeholder="0" oninput="updateReport()"></td>
+                        <td><input type="number" class="shift-input" value="1" oninput="updateReport()"></td>
+                        <td class="row-total" style="font-weight: bold; vertical-align: middle;">0 ₽</td>
+                    </tr></tbody>
+                </table>
+                <button class="add-btn" onclick="addRow('budget-table')">+ Добавить технику</button>
+            </div>
+        </div>
+
+        <div id="tab-logistics" class="tab-content">
+            <div class="container">
+                <h3>🚚 Трансфер и прочее</h3>
+                <div id="log-list"></div>
+                <button class="add-btn" onclick="addSimpleInput('log-list', 'log-input')">+ Добавить пункт логистики</button>
+            </div>
+        </div>
+
+        <div id="tab-cloud" class="tab-content">
+            <div class="container">
+                <h3>☁️ Настройки Яндекса</h3>
+                <div id="sync-status" class="cloud-status status-off">Диск не подключен</div>
+                
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <button class="reset-btn" onclick="resetToken()">🔄 1. Сбросить старый токен</button>
+                    <p style="margin-top: 10px; font-size: 0.85rem; color: #aaa; margin-bottom: 0;">Если меняли приложение, обязательно сбросьте старый код перед получением нового.</p>
+                </div>
+
+                <button class="add-btn" onclick="getYandexToken()" style="border-style: solid; color: white; border-color: #fff;">2. Получить новый токен</button>
+                <input type="password" id="ya-token" placeholder="3. Вставьте токен сюда..." style="margin-top: 15px;">
+                <button class="add-btn" onclick="connectYandex()" style="border-style: solid; color: var(--accent-color); border-color: var(--accent-color);">4. Подключить диск</button>
+
+                <div class="cloud-controls">
+                    <button id="btn-save" class="cloud-btn save-btn" onclick="saveToCloud()" disabled>💾 Сохранить</button>
+                    <button id="btn-load" class="cloud-btn load-btn" onclick="loadFromCloud()" disabled>📥 Загрузить</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-report" class="tab-content">
+            <div class="report-card">
+                <div class="report-grid">
+                    <div class="report-item"><h4>📅 Время</h4><div class="report-val" id="res-datetime">--</div></div>
+                    <div class="report-item"><h4>💰 Бюджет</h4><div class="report-val" id="res-budget">0 ₽</div></div>
+                    <div class="report-item"><h4>⏳ Сцены</h4><div class="report-val" id="res-time">0 мин.</div></div>
+                    <div class="report-item"><h4>👥 Команда</h4><div id="res-people">--</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CLIENT_ID = '4c95c883926e48219d1d9b7c37ab9aaa';
+        let yaToken = localStorage.getItem('ya_token') || '';
+
+        window.onload = () => {
+            if(yaToken) { document.getElementById('ya-token').value = yaToken; checkCloudStatus(); }
+            updateReport();
+        };
+
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            let title = event.currentTarget.innerText.trim();
+            document.getElementById('tab-title').innerText = title.substring(title.indexOf(' ') + 1);
+        }
+
+        // --- ОБЛАКО ---
+        function getYandexToken() { window.open(`https://oauth.yandex.ru/authorize?response_type=token&client_id=${CLIENT_ID}`, '_blank'); }
+
+        function resetToken() {
+            localStorage.removeItem('ya_token'); yaToken = '';
+            document.getElementById('ya-token').value = '';
+            document.getElementById('sync-status').innerText = 'Диск отключен (Токен сброшен)';
+            document.getElementById('sync-status').className = 'cloud-status status-off';
+            document.getElementById('btn-save').disabled = true; document.getElementById('btn-load').disabled = true;
+        }
+
+        function connectYandex() {
+            const val = document.getElementById('ya-token').value.trim();
+            if(!val) return alert('Вставьте токен!');
+            yaToken = val; localStorage.setItem('ya_token', yaToken); checkCloudStatus();
+        }
+
+        async function checkCloudStatus() {
+            try {
+                const res = await fetch('https://cloud-api.yandex.net/v1/disk/', { headers: { 'Authorization': 'OAuth ' + yaToken } });
+                if(res.ok) {
+                    document.getElementById('sync-status').innerText = 'Диск подключен ✅';
+                    document.getElementById('sync-status').className = 'cloud-status status-on';
+                    document.getElementById('btn-save').disabled = false; document.getElementById('btn-load').disabled = false;
+                } else throw new Error();
+            } catch(e) {
+                document.getElementById('sync-status').innerText = 'Ошибка ❌ (Сбросьте и получите новый)';
+                document.getElementById('sync-status').className = 'cloud-status status-off';
+            }
+        }
+
+        // --- ФОТОГРАФИИ ---
+        function triggerPhotoUpload(btn) {
+            if(!yaToken) return alert('Сначала подключите Яндекс Диск во вкладке "Облако"!');
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+            input.onchange = (e) => uploadPhotoToYandex(e.target.files[0], btn);
+            input.click();
+        }
+
+        async function uploadPhotoToYandex(file, btn) {
+            if(!file) return;
+            btn.innerText = '⏳ Загрузка...';
+            btn.disabled = true;
+            try {
+                const ext = file.name.split('.').pop() || 'jpg';
+                const fName = `photo_${Date.now()}.${ext}`;
+                const upRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${fName}&overwrite=true`, {
+                    headers: { 'Authorization': 'OAuth ' + yaToken }
+                });
+                const { href } = await upRes.json();
+                await fetch(href, { method: 'PUT', body: file });
+                
+                await fetch(`https://cloud-api.yandex.net/v1/disk/resources/publish?path=${fName}`, {
+                    method: 'PUT', headers: { 'Authorization': 'OAuth ' + yaToken }
+                });
+                const metaRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources?path=${fName}`, {
+                    headers: { 'Authorization': 'OAuth ' + yaToken }
+                });
+                const meta = await metaRes.json();
+                
+                const linkWrap = document.createElement('div');
+                linkWrap.innerHTML = `<a href="${meta.public_url}" target="_blank" style="color:var(--accent-color); font-size: 0.85rem; display:block; padding:10px 0;">🔗 Смотреть фото</a>`;
+                
+                const hiddenInput = btn.nextElementSibling;
+                hiddenInput.value = meta.public_url; // Сохраняем ссылку для JSON
+                btn.parentNode.replaceChild(linkWrap, btn);
+                updateReport();
+            } catch(e) {
+                alert('Не удалось загрузить фото. Проверьте подключение.');
+                btn.innerText = '📷 Прикрепить'; btn.disabled = false;
+            }
+        }
+
+        // --- СОХРАНЕНИЕ / ЗАГРУЗКА ДАННЫХ ---
+        function collectAllData() {
+            const getTableData = (id) => Array.from(document.querySelectorAll(`#${id} tbody tr`)).map(tr => 
+                Array.from(tr.querySelectorAll('input:not([type=file])')).map(i => i.value)
+            );
+            const getListData = (cls) => Array.from(document.querySelectorAll('.'+cls)).map(i => i.value);
+
+            return {
+                header: [document.getElementById('shoot-date').value, document.getElementById('shift-start').value, document.getElementById('shift-end').value],
+                timing: getTableData('time-table'),
+                actors: getTableData('actors-table'),
+                crew: getListData('crew-input'),
+                props: getTableData('props-table'),
+                budget: getTableData('budget-table'),
+                log: getListData('log-input')
+            };
+        }
+
+        async function saveToCloud() {
+            document.getElementById('btn-save').innerText = '⏳ Сохраняем...';
+            try {
+                const resUpload = await fetch('https://cloud-api.yandex.net/v1/disk/resources/upload?path=ProductionPlan.json&overwrite=true', { headers: { 'Authorization': 'OAuth ' + yaToken } });
+                const { href } = await resUpload.json();
+                await fetch(href, { method: 'PUT', body: JSON.stringify(collectAllData()) });
+                document.getElementById('btn-save').innerText = '✅ Сохранено';
+                setTimeout(() => document.getElementById('btn-save').innerText = '💾 Сохранить', 3000);
+            } catch(e) { alert('Ошибка сети!'); document.getElementById('btn-save').innerText = '💾 Сохранить'; }
+        }
+
+        async function loadFromCloud() {
+            try {
+                const resDownload = await fetch('https://cloud-api.yandex.net/v1/disk/resources/download?path=ProductionPlan.json', { headers: { 'Authorization': 'OAuth ' + yaToken } });
+                if(!resDownload.ok) return alert('Файл пока пуст или не найден.');
+                const { href } = await resDownload.json();
+                const data = await (await fetch(href)).json();
+                
+                if(data.header) {
+                    document.getElementById('shoot-date').value = data.header[0] || '';
+                    document.getElementById('shift-start').value = data.header[1] || '';
+                    document.getElementById('shift-end').value = data.header[2] || '';
+                }
+                
+                if(data.timing) rebuildTable('time-table', data.timing, (r, d) => r.innerHTML = `<td><input type="text" value="${d[0]||''}" oninput="updateReport()"><input type="text" class="sub-input" value="${d[1]||''}" oninput="updateReport()"></td><td><input type="text" value="${d[2]||''}" oninput="updateReport()"></td><td><input type="number" class="time-input" value="${d[3]||''}" oninput="updateReport()"></td>`);
+                if(data.actors) rebuildTable('actors-table', data.actors, (r, d) => r.innerHTML = `<td><input type="text" class="actor-input" value="${d[0]||''}" oninput="updateReport()"></td><td><input type="time" class="actor-call" value="${d[1]||''}" oninput="updateReport()"></td>`);
+                if(data.budget) rebuildTable('budget-table', data.budget, (r, d) => { r.className = 'budget-row'; r.innerHTML = `<td><input type="text" value="${d[0]||''}" oninput="updateReport()"><input type="text" class="sub-input" value="${d[1]||''}" oninput="updateReport()"></td><td><input type="number" class="price-input" value="${d[2]||''}" oninput="updateReport()"></td><td><input type="number" class="shift-input" value="${d[3]||'1'}" oninput="updateReport()"></td><td class="row-total" style="font-weight:bold; vertical-align:middle;">0 ₽</td>`; });
+                
+                // Реквизит (с поддержкой ссылок на фото)
+                if(data.props) rebuildTable('props-table', data.props, (r, d) => {
+                    let photoHTML = `<button class="add-btn photo-btn" onclick="triggerPhotoUpload(this)">📷 Прикрепить</button><input type="hidden" class="photo-link" value="">`;
+                    if(d[1]) photoHTML = `<div><a href="${d[1]}" target="_blank" style="color:var(--accent-color); font-size: 0.85rem; display:block; padding:10px 0;">🔗 Смотреть фото</a></div><input type="hidden" class="photo-link" value="${d[1]}">`;
+                    r.innerHTML = `<td><input type="text" class="prop-input" value="${d[0]||''}" oninput="updateReport()"></td><td>${photoHTML}</td>`;
+                });
+
+                if(data.crew) rebuildList('crew-list', 'crew-input', data.crew);
+                if(data.log) rebuildList('log-list', 'log-input', data.log);
+                updateReport(); alert('Данные загружены!');
+            } catch(e) { alert('Ошибка при загрузке!'); }
+        }
+
+        // --- UI ЛОГИКА ---
+        function rebuildTable(id, arr, builder) {
+            const tb = document.querySelector(`#${id} tbody`); tb.innerHTML = '';
+            if(!arr.length) arr = [[]];
+            arr.forEach(d => { const r = document.createElement('tr'); builder(r, d); tb.appendChild(r); });
+        }
+        function rebuildList(id, cls, arr) { document.getElementById(id).innerHTML = ''; arr.forEach(v => { if(v) addSimpleInput(id, cls, v); }); }
+
+        function addRow(tableId) {
+            const tb = document.querySelector(`#${tableId} tbody`); const r = document.createElement('tr');
+            if(tableId === 'time-table') r.innerHTML = `<td><input type="text" oninput="updateReport()"><input type="text" class="sub-input" placeholder="🎵 Музыка" oninput="updateReport()"></td><td><input type="text" oninput="updateReport()"></td><td><input type="number" class="time-input" oninput="updateReport()"></td>`;
+            else if(tableId === 'actors-table') r.innerHTML = `<td><input type="text" class="actor-input" oninput="updateReport()"></td><td><input type="time" class="actor-call" oninput="updateReport()"></td>`;
+            else if(tableId === 'budget-table') { r.className = 'budget-row'; r.innerHTML = `<td><input type="text" oninput="updateReport()"><input type="text" class="sub-input" oninput="updateReport()"></td><td><input type="number" class="price-input" oninput="updateReport()"></td><td><input type="number" class="shift-input" value="1" oninput="updateReport()"></td><td class="row-total" style="font-weight:bold; vertical-align:middle;">0 ₽</td>`; }
+            else r.innerHTML = `<td><input type="text" class="prop-input" oninput="updateReport()"></td><td><button class="add-btn photo-btn" onclick="triggerPhotoUpload(this)">📷 Прикрепить</button><input type="hidden" class="photo-link"></td>`;
+            tb.appendChild(r);
+        }
+
+        function addSimpleInput(id, cls, val = '') {
+            const w = document.createElement('div'); w.style.display = 'flex'; w.style.gap = '5px'; w.style.marginBottom = '8px';
+            w.innerHTML = `<input type="text" class="${cls}" value="${val}" oninput="updateReport()">`;
+            document.getElementById(id).appendChild(w);
+        }
+
+        function updateReport() {
+            const d = document.getElementById('shoot-date').value, s = document.getElementById('shift-start').value, e = document.getElementById('shift-end').value;
+            document.getElementById('res-datetime').innerText = `${d||'--'} (${s||'--'} - ${e||'--'})`;
+            let t = 0; document.querySelectorAll('.time-input').forEach(i => t += (parseInt(i.value)||0));
+            document.getElementById('res-time').innerText = Math.floor(t/60) + "ч " + (t%60) + "м";
+            let b = 0; document.querySelectorAll('.budget-row').forEach(row => {
+                const sum = (parseInt(row.querySelector('.price-input').value)||0) * (parseInt(row.querySelector('.shift-input').value)||0);
+                row.querySelector('.row-total').innerText = sum.toLocaleString() + ' ₽'; b += sum;
+            });
+            document.getElementById('res-budget').innerText = b.toLocaleString() + ' ₽';
+            const people = [...Array.from(document.querySelectorAll('.actor-input')), ...Array.from(document.querySelectorAll('.crew-input'))].map(i => i.value).filter(v => v);
+            document.getElementById('res-people').innerHTML = people.map(a => `<span class="badge">${a}</span>`).join('') || '--';
+        }
+    </script>
+</body>
+</html>
